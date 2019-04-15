@@ -19,10 +19,20 @@ module.exports = function(RED) {
                 
                 if (device) {
                     
-                    device.getAllProperties(val => {
-                        msg.payload = val;
-                        _node.send(msg);
-                    });
+                    if(device.miioModel.indexOf('magnet') !== -1) {
+                        // Fix the issue with miio library: https://github.com/aholstenson/miio/issues/170
+                        (async () => {
+                            await device.contact();
+                            msg.payload = {
+                                open: device.magnetContact === false,
+                                contact: device.magnetContact
+                            } 
+                        });  
+                    } else {
+                        msg.payload = device.properties;
+                    }
+
+                    _node.send(msg);
 
                 } else {
                     console.log('No such device with identifier ', deviceId);        

@@ -18,16 +18,25 @@ module.exports = function(RED) {
                 // Check if current instance is still enabled, this avoid running old callback when the node is re-loaded
                 if (_node._enabled) {
     
+                    var evalue = e.value;
+                    var eunit;
+
+                    if(e.key === 'temperature'){
+                        evalue = e.value.value;
+                        eunit = e.value.unit;
+                    }
+
                     var msg = {
                         payload: {
                             deviceId: e.deviceId,
                             model: e.model,
                             property: e.key,
-                            newValue: e.value,
-                            oldValue: 'deprecated'
+                            newValue: evalue,
+                            unit: eunit,
+                            timeStamp: Date.now()
                         }
                     };
-    
+
                     _node.send(msg);
                 }
             });

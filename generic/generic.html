@@ -19,7 +19,7 @@
             
             for (key in RED.settings.miioGenericDevices) {
                 var device = RED.settings.miioGenericDevices[key];
-                $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + '</option>');
+                $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + ' ' + device.address + '</option>');
             }
             
             $('#node-input-deviceId').val(node.deviceId);

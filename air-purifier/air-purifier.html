@@ -7,19 +7,20 @@
             deviceId: {value:""}
         },
         inputs:1,
-        outputs:0,
+        outputs:1,
         icon: "debug.png",
         label: function() {
-            return this.name||"miio-air";
+            return this.name||"miio-air-purifier";
         },
         paletteLabel: "air purifier",
+        outputLabels: ['On Data'],
         oneditprepare: function() {
             var node = this;
             
             for (key in RED.settings.miioAirPurifierDevices) {
                 var device = RED.settings.miioAirPurifierDevices[key];
                 if (device.model.indexOf('airpurifier') !== -1) {
-                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + '</option>');
+                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + ' ' + device.address + '</option>');
                 }
             }
             
@@ -45,7 +46,73 @@
 
 <script type="text/x-red" data-help-name="miio-air-purifier">
     <p>Xiaomi Air Purifier</p>
-    Output device, inject JSON payload to set Air Purifier properties.
+    Inject JSON payload to set Air Purifier properties.
     Sample JSON:
-    <pre><code>payload: {power: true, favoriteLevel: 1, buzzer: true, mode: 'favorite'}</code></pre>
+    <pre><code>payload: {   
+        mode: 'favorite', 
+        favoriteLevel: 1,  
+        ledBrightness: 'off',
+        buzzer: true, 
+        learnMode: false, 
+        childLock: false, 
+        turboMode: false,
+        status: 'properties', // 'autocfg'
+        automation: true, // turn on/off automation mode
+        aqi: 25, // input value - external sensor / 'internalSensor'
+        autocfg: { // write automation config. - example
+            pauseTime: 30, // 30 min.
+            swPointDelta: 0, // switch point +-delta
+            swOnPoint: 25, // hysteresis
+            swPoints: [ // All points has condition: ">".
+                {value: 0, mode: 'idle'},
+                {value: 11, mode: 'favorite', fanSpeed: 1}, 
+                {value: 25, mode: 'favorite', fanSpeed: 2},
+                {value: 50, mode: 'favorite', fanSpeed: 3},
+                {value: 75, mode: 'favorite', fanSpeed: 4},
+                {value: 100, mode: 'favorite', fanSpeed: 5},
+                {value: 125, mode: 'auto'}
+            ] 
+        },
+        deviceName: "AirP-1" // If deviceName is undefined, 
+                            // commands are accepted by all devices
+}</code></pre>              
+
+    Example of output msg. for status:'properties' command:
+    <pre><code>payload: {
+        mode: "silent"
+        temperature: 24.2
+        humidity: 50
+        aqi: 10
+        purifyVolume: 69868
+        favoriteLevel: 1
+        filterLifeRemaining: 80
+        filterHoursUsed: 690
+        ledBrightness: "off"
+        buzzer: false
+        childLock: false
+        learnMode: false
+        turboMode: false
+        automation: true
+        deviceName: "AirP-1"
+}</code></pre>
+
+    Example of output msg. for status:'autocfg' command:
+    <pre><code>payload: {
+        autocfg: { 
+            pauseTime: 30,
+            swPointDelta: 0,
+            swOnPoint: 25, 
+            swPoints: [
+                {value: 0, mode: 'idle'},
+                {value: 11, mode: 'favorite', fanSpeed: 1}, 
+                {value: 25, mode: 'favorite', fanSpeed: 2},
+                {value: 50, mode: 'favorite', fanSpeed: 3},
+                {value: 75, mode: 'favorite', fanSpeed: 4},
+                {value: 100, mode: 'favorite', fanSpeed: 5},
+                {value: 125, mode: 'auto'}
+            ] 
+        }
+        deviceName: "AirP-1"
+}</code></pre>    
+
 </script>

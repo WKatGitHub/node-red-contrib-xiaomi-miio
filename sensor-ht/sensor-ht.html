@@ -20,7 +20,7 @@
             for (key in RED.settings.miioSensorHtDevices) {
                 var device = RED.settings.miioSensorHtDevices[key];
                 if ( (device.model.indexOf('sensor_ht') !== -1) || (device.model.indexOf('airpurifier') !== -1) ) {
-                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + '</option>');
+                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + ' ' + device.address + '</option>');
                 }
             }
             

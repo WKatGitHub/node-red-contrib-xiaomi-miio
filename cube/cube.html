@@ -20,7 +20,7 @@
             for (key in RED.settings.miioCubeDevices) {
                 var device = RED.settings.miioCubeDevices[key];
                 if (device.model.indexOf('cube') !== -1) {
-                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + '</option>');
+                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + ' ' + device.address + '</option>');
                 }
             }
             

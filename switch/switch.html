@@ -21,7 +21,7 @@
             for (key in RED.settings.miioSwitchDevices) {
                 var device = RED.settings.miioSwitchDevices[key];
                 if (device.model.indexOf('switch') !== -1) {
-                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + '</option>');
+                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + ' ' + device.address + '</option>');
                 }
             }
             

@@ -21,7 +21,7 @@
             for (key in RED.settings.miioMotionDevices) {
                 var device = RED.settings.miioMotionDevices[key];
                 if (device.model.indexOf('motion') !== -1) {
-                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + '</option>');
+                    $('#node-input-deviceId').append('<option value="' + device.id + '">' + device.id + ' ' + device.model + ' ' + device.address + '</option>');
                 }
             }
             

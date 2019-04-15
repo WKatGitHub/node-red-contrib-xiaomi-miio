@@ -1,5 +1,5 @@
 const miio = require('miio');
-const util = require('util');
+//const util = require('util');
 
 var allDevices = {
     instance: Math.random()
@@ -26,52 +26,47 @@ devices.on('available', reg => {
 		return;
 	}
 	
-	console.log('Detected device with identifier ', reg.id, ' types ', device.metadata.types, ' model ', device.miioModel);
-
-	setupLegacySupport(reg.id, device);
+	console.log('Detected device with identifier:', reg.id, ' ip address:', device.handle.api.address, ' model:', device.miioModel);
 	
-	if (typeof allDevices[reg.id] === 'undefined') {
+	if(typeof allDevices[reg.id] === 'undefined') {
     	optionDevices.push({
     		id: reg.id,
-    		model: device.miioModel,
-    		type: device.type
+    		address: device.handle.api.address,
+    		model: device.miioModel
     	});
     	
-    	allDevices[reg.id] = device;
-    	
-        switch (device.type) {
-            case 'gateway':
-                handleGateway(reg.id, device);
-                break;
-    
-            case 'air-purifier':
-                handleAirPurifier(reg.id, device);
-                break;
-    
-            case 'controller':
-            	//console.log('sub-device!' + util.inspect(device, { showHidden: true, depth: 5 }) );
-                handleController(reg.id, device);
-                break;
-    
-            case 'magnet':
-                handleMagnet(reg.id, device);
-                break;
-    
-            case 'sensor':
-                handleSensor(reg.id, device);
-                break;
-    
-            case 'motion':
-                handleMotion(reg.id, device);
-                break;
-    
-            default:
-                console.log('Skip device: ' + reg.id + ' type:' + device.type);
-        }
+		allDevices[reg.id] = device;
+				
+		if(device.miioModel.indexOf('airpurifier') !== -1) {
+            hookGenericStateAndAction(reg.id, device);
+ 
+		} else if(device.miioModel.indexOf('sensor') !== -1) {
+            hookGenericStateAndAction(reg.id, device);
+            
+		} else if(device.miioModel.indexOf('gateway') !== -1) {
+            hookGenericStateAndAction(reg.id, device);
+            
+		} else if(device.miioModel.indexOf('controller') !== -1) {
+            hookGenericStateAndAction(reg.id, device);
+            
+		} else if(device.miioModel.indexOf('magnet') !== -1) {
+            // Fix the issue with miio library
+            device.contact().then(contact => device.magnetContact = contact);
+            setTimeout(function() {
+                disableEventListener = false;
+                console.log('Enabled event listeners');
+            }, 5000);
+            hookGenericStateAndAction(reg.id, device);
+            
+		} else if(device.miioModel.indexOf('motion') !== -1) {
+            hookGenericStateAndAction(reg.id, device);
+            
+		} else {
+			console.log('Skip device:', reg.id, ' ip address:', device.handle.api.address , ' model:' , device.miioModel);
+		}	
 	} else {
-	    console.log('Device already initialized.');
+	    console.log('The device has already been initialized.');
 	}
-
 });
 
 /* ======================================================================================================= */
@@ -81,162 +76,60 @@ devices.on('unavailable', device => {
 });
 
 /* ======================================================================================================= */
-var setupLegacySupport = function(id, device) {
-    
-	// Fix the issue with miio library
-	if (device.miioModel.indexOf('magnet') !== -1) {
-	    device.contact().then(contact => device.magnetContact = contact);
-	    
-        setTimeout(function() {
-            disableEventListener = false;
-            console.log('Enabled event listeners');
-        }, 5000);
-	}
-    
-    // backward compatibility stuff
-	device.type = mapMiioModelToType(device.miioModel);
-	device.model = device.miioModel;
-	
-	device.getAllProperties = function(resultCallback) {
-        if (device.miioModel.indexOf('magnet') !== -1) {
-            // Fix the issue with miio library: https://github.com/aholstenson/miio/issues/170
-            device.contact().then( val => resultCallback({
-                open: device.magnetContact === false,
-                contact: device.magnetContact
-            }) );
-            
-        } else {
-            resultCallback(device.properties);
-        }
-	}
+function triggerCallback(id, deviceCallbacks, event) {
 
-}
-
-/* ======================================================================================================= */
-var mapMiioModelToType = function(model) {
-    
-    if (model.indexOf('airpurifier') !== -1) {
-        return 'air-purifier';
-    } else if (model.indexOf('cube') !== -1) {
-        return 'controller';
-    } else if (model.indexOf('magnet') !== -1) {
-        return 'magnet';
-    } else if (model.indexOf('motion') !== -1) {
-        return 'motion';
-    } else if (model.indexOf('sensor_ht') !== -1) {
-        return 'sensor';
-    } else if (model.indexOf('switch') !== -1) {
-        return 'controller';
-    } else if (model.indexOf('gateway') !== -1) {
-        return 'gateway';
-    } else if (model.indexOf('repeater') !== -1) {
-        return 'repeater';
-    } else {
-        console.warn('Unknown model ', model);
-        return 'unknown';
-    }
-
-}
-
-/* ======================================================================================================= */
-function triggerCallback(id, deviceCallbacks, event, device) {
-	// console.log('event', ' ', id, ' ', arg1, ' ', arg2, ' ', arg3);
 	var callbacks = deviceCallbacks[id];
-	
-	if (callbacks) {
-		for (var i = 0, len = callbacks.length; i < len; i++) {
+	//console.log('event: ', event);
+	if(callbacks) {
+		for(var i = 0, len = callbacks.length; i < len; i++) {
 			var callback = callbacks[i];
-			if (typeof callback === "function") {
+			if(typeof callback === "function") {
 			    event = (typeof event === 'undefined') ? {} : event;
-			    // event.device = device;
 				callback(event);
 			}
 		}
 	}
-
 }
 
 /* ======================================================================================================= */
 function hookGenericStateAndAction(id, device) {
     
     device.on('stateChanged', e => {
-        
-        if (disableEventListener) {
+        if(disableEventListener) {
             return;
         }
-        
         var event = {
             deviceId: id,
             key: e.key,
             value: e.value,
-            model: device.model
+            model: device.miioModel
         };
-        
     	// Fix the issue with miio library: https://github.com/aholstenson/miio/issues/170
-    	if ( (device.miioModel.indexOf('magnet') !== -1) && (e.key == 'contact') ) {
+    	if( (device.miioModel.indexOf('magnet') !== -1) && (e.key == 'contact') ) {
     	    device.magnetContact = e.value;
     	}
-
-        triggerCallback(id, propertyCallbacks, event, device);
+        triggerCallback(id, propertyCallbacks, event);
     });
 
-    device.on('action', e => {
-        
-        if (disableEventListener) {
+    device.on('action', e => {   
+        if(disableEventListener) {
             return;
-        }
-        
+        }  
         var event = {
             deviceId: id,
             action: e.action,
-            model: device.model,
+            model: device.miioModel,
             amount: e.data.amount
         };
-        
-		triggerCallback(id, actionCallbacks, event, device);
+		triggerCallback(id, actionCallbacks, event);
     });    
 }
 
 /* ======================================================================================================= */
-function handleGateway(id, device) {
-
-    // Handlers for Gateway events
-    hookGenericStateAndAction(id, device);
-}
-
-
-/* ======================================================================================================= */
-function handleController(id, device) {
-    hookGenericStateAndAction(id, device);
-}
-
-/* ======================================================================================================= */
-function handleMagnet(id, device) {
-    hookGenericStateAndAction(id, device);
-}
-
-/* ======================================================================================================= */
-function handleSensor(id, device) {
-    hookGenericStateAndAction(id, device);
-}
-
-/* ======================================================================================================= */
-function handleAirPurifier(id, device) {
-    hookGenericStateAndAction(id, device);
-
-}
-
-/* ======================================================================================================= */
-function handleMotion(id, device) {
-    hookGenericStateAndAction(id, device);
-}
-
-/* ======================================================================================================= */
 function addCallbacks(deviceId, deviceCallbacks, callback) {
-	if (!deviceCallbacks[deviceId]) {
+	if(!deviceCallbacks[deviceId]) {
 		deviceCallbacks[deviceId] = [];
 	}
-
 	deviceCallbacks[deviceId].push(callback);	
 }
 
